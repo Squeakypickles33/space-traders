@@ -1,46 +1,100 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { noop } from './test.js'
-import Header from "./Header"
+import Header from "./Header";
+
 
 export default function App() {
 
-const url = 'https://api.spacetraders.io/v2';
-const options = {
-  method: 'GET',
-  headers: {Accept: 'application/json', Authorization: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZGVudGlmaWVyIjoiTUlHSFRZX01PVVNFIiwidmVyc2lvbiI6InYyIiwicmVzZXRfZGF0ZSI6IjIwMjMtMDktMjMiLCJpYXQiOjE2OTU5MzU0OTEsInN1YiI6ImFnZW50LXRva2VuIn0.Df-0M90pCN8tnQSfkeVIQhZdoaRN7pKjf6-sSFoABXRd9H5whl77ZLPxg2OM-R6_0JVmvmkqpUYCUAv2gdk5CqOVnbotp4G7BU1Cw2bbFYNU-V5T-0HodnsHf8YG6S-_FdBHG1PpyrAOjXyG4I2Ihhun9A8ZhBzXFVgRip5mccIH6JoE0chLP0RndKPe-OREMTX6_bgH-f1bbvBEelUrJBcO4lOKqBaph_EWU-Yh2S_-by16nQ0w1Ym7U0oovVqWOS20_vt3PDbLOvMJqmrcQ-t-4wUplpGY3Mz1iq0FNUeuobILoO3HyEV_r6REiiKRTUQQPzrzX0cutdtht7Zz7w'}
-};
+  const [globals, setGlobals] = useState({})
+  const [agent, setAgent] = useState({})
 
-const [data, setData] = useState(null)
+  const bearer = process.env.REACT_APP_TOKEN;
+
+  const url = 'https://api.spacetraders.io/v2';
+  const registerUrl = 'https://api.spacetraders.io/v2/register';
+  const agentUrl = 'https://api.spacetraders.io/v2/my/agent';
+  const contractsUrl = 'https://api.spacetraders.io/v2/my/contracts';
+  const shipsUrl = 'https://api.spacetraders.io/v2/my/ships';
+  const loansUrl = 'https://api.spacetraders.io/v2/my/loans';
 
 
-useEffect(()=>{
+  console.log('agent data', agent)
 
-  fetch(url, options)
-  .then(response => response.json())
-  .then(response => {
-    setData(response)
-  })
-  .catch(err => console.error(err));
+  const options = {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: bearer,
+    }
+  };
 
-}, [])
+  const registerOptions = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      symbol: 'SqueakyPickles',
+      faction: "COSMIC",
+    }),
+  }
+
+  const agentOptions = {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${bearer}`,
+    },
+  };
+
+  const handleRegister = (input) => {
+    fetch(registerUrl, registerOptions)
+    .then(response => response.json())
+    .then(globals => setAgent(globals))
+    .catch(err => console.error(err))
+  }
+
+
+  useEffect(() => {
+    fetch(url, options)
+    .then(response => response.json())
+    .then(response => setGlobals(response))
+    .catch(err => console.error(err));
+    fetch(agentUrl, agentOptions)
+    .then(response => response.json())
+    .then(({data}) => setAgent(data))
+    .catch(err => console.error(err));
+  }, []);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch(url, options)
+      .then(response => response.json())
+      .then(response => setGlobals(response))
+      .catch(err => console.error(err));
+      fetch(agentUrl, agentOptions)
+      .then(response => response.json())
+      .then(({data}) => setAgent(data))
+      .catch(err => console.error(err));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
 
   return (
     <div className="App">
       <header className="App-header">
-        <Header status={data?.status}/>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-        <div></div> {data?.status}
+        <Header status={globals?.status} reset={globals?.serverResets?.next}/>
       </header>
+      <div className="App-body">
+        <div>What is Space Traders?</div>
+        <div>{globals?.description}</div>
+        {!agent ? (
+          <div style={{margin: "2rem"}}>Register to play!
+            <button style={{margin: "2rem"}} onClick={handleRegister}>Register</button>
+          </div>
+        ) : (
+          <div>Let's play {agent?.symbol}!</div>
+        )}
+      </div>
     </div>
   );
 }
-
-// export default App;
